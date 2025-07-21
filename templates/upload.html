@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Watchdog - Upload</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .glowing-card {
+            transition: box-shadow 0.3s ease, background-color 0.3s ease;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        .glowing-card:hover {
+            box-shadow: 0 0 15px var(--glow-color);
+        }
+        body[data-theme="light"] .glowing-card {
+            background-color: #e6f0fa;
+            color: #1e3a8a;
+        }
+        body[data-theme="dark"] .glowing-card {
+            background-color: #4b1e66;
+            color: #ffffff;
+        }
+        #reply-section {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        #reply-text {
+            word-wrap: break-word;
+            margin-bottom: 10px;
+        }
+        #email-section {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        #generate-reply-btn {
+            margin-top: 10px;
+            display: block;
+            visibility: visible;
+        }
+    </style>
+</head>
+<body class="bg-radial-pink d-flex flex-column min-vh-100 position-relative">
+    <div class="blob top-left"></div>
+    <div class="blob top-right"></div>
+    <div class="blob bottom-left"></div>
+    <div class="blob bottom-right"></div>
+    <div class="container my-5 flex-grow-1 d-flex justify-content-center align-items-center">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card glowing-card shadow-sm p-4" style="height: 300px;">
+                    <h2 class="text-center mb-4" style="font-family: Georgia, serif;">Upload CSV File</h2>
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="file" class="form-label">Choose CSV File</label>
+                            <input type="file" class="form-control" id="file" name="file" accept=".csv" required>
+                        </div>
+                        <button type="submit" class="btn btn-cta w-100">Upload</button>
+                    </form>
+                    {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-info mt-3" role="alert" style="color: #6b21a8;">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card glowing-card shadow-sm p-4" style="height: 300px;">
+                    <h2 class="text-center mb-4" style="font-family: Georgia, serif;">Fetch Emails</h2>
+                    <div id="email-section">
+                        <button id="fetch-email-btn" class="btn btn-cta w-100 mb-2">Fetch Emails</button>
+                        <div id="email-content" class="mt-3" style="display: none;">
+                            <p><strong>Subject:</strong> <span id="email-subject"></span></p>
+                            <p><strong>Body:</strong> <span id="email-body"></span></p>
+                            <p><strong>Emotion:</strong> <span id="email-emotion"></span></p>
+                        </div>
+                        <button id="generate-reply-btn" class="btn btn-cta w-100" style="display: none;">Generate AI Suggestion</button>
+                        <div id="reply-section" class="mt-3" style="display: none;">
+                            <p><strong>Suggested Reply:</strong></p>
+                            <p id="reply-text"></p>
+                            <button id="send-reply-btn" class="btn btn-cta w-100 mt-2">Send Reply</button>
+                            <p id="reply-status" class="mt-2" style="color: #6b21a8;"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer class="bg-theme text-center py-3 mt-auto" style="color: #ff1493;">
+        <p class="mb-0">Built by Shweta | © 2025 Sentiment Watchdog</p>
+    </footer>
+    <div class="form-check form-switch position-absolute top-0 end-0 m-3">
+        <input class="form-check-input theme-toggle" type="checkbox" id="themeToggle">
+        <label class="form-check-label text-white" for="themeToggle">Dark Mode</label>
+    </div>
+    <script src="{{ url_for('static', filename='home.js') }}" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const fetchBtn = document.getElementById('fetch-email-btn');
+            const generateReplyBtn = document.getElementById('generate-reply-btn');
+            const sendReplyBtn = document.getElementById('send-reply-btn');
+            const emailContent = document.getElementById('email-content');
+            const replySection = document.getElementById('reply-section');
+            const emailSubject = document.getElementById('email-subject');
+            const emailBody = document.getElementById('email-body');
+            const emailEmotion = document.getElementById('email-emotion');
+            const replyText = document.getElementById('reply-text');
+            const replyStatus = document.getElementById('reply-status');
+
+            let emailData = {};
+
+            fetchBtn.addEventListener('click', async () => {
+                const response = await fetch('/fetch_email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                emailData = await response.json();
+                console.log('Fetch response:', emailData); // Debug log
+                if (emailData.status === 'Email fetched' || emailData.subject) {
+                    emailContent.style.display = 'block';
+                    emailSubject.textContent = emailData.subject || 'No subject';
+                    emailBody.textContent = emailData.body || 'No body';
+                    emailEmotion.textContent = emailData.emotion || 'No emotion';
+                    generateReplyBtn.style.display = 'block';
+                } else {
+                    emailContent.style.display = 'block';
+                    emailSubject.textContent = '';
+                    emailBody.textContent = emailData.body || 'No email available.';
+                    emailEmotion.textContent = '';
+                    generateReplyBtn.style.display = 'none';
+                }
+            });
+
+            generateReplyBtn.addEventListener('click', () => {
+                if (emailData.status === 'Email fetched' && emailData.emotion) {
+                    fetch('/fetch_email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ body: emailData.body })
+                    }).then(res => res.json()).then(data => {
+                        if (data.reply) {
+                            replySection.style.display = 'block';
+                            replyText.textContent = data.reply.text;
+                        } else {
+                            replyText.textContent = 'No suggestion available.';
+                        }
+                    }).catch(error => {
+                        replyText.textContent = 'Error generating suggestion.';
+                    });
+                } else {
+                    replyText.textContent = 'No email data to generate suggestion.';
+                }
+            });
+
+            sendReplyBtn.addEventListener('click', async () => {
+                if (emailData.status === 'Email fetched' && emailData.reply) {
+                    const response = await fetch('/send_reply', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            subject: emailSubject.textContent,
+                            reply_text: replyText.textContent || emailData.reply.text,
+                            to_email: "shwetaumbrajkaar11@gmail.com"
+                        })
+                    });
+                    const data = await response.json();
+                    replyStatus.textContent = data.status;
+                    setTimeout(() => { replyStatus.textContent = ''; }, 3000);
+                } else {
+                    replyStatus.textContent = 'No reply to send.';
+                    setTimeout(() => { replyStatus.textContent = ''; }, 3000);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

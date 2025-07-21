@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Watchdog - Email Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .glowing-card {
+            transition: box-shadow 0.3s ease;
+            border-radius: 15px;
+        }
+        .glowing-card:hover {
+            box-shadow: 0 0 15px var(--glow-color);
+        }
+        body[data-theme="light"] .glowing-card {
+            background-color: #e6f0fa;
+            color: #1e3a8a;
+        }
+        body[data-theme="dark"] .glowing-card {
+            background-color: #4b1e66;
+            color: #ffffff;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: var(--card-bg);
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 500px;
+            animation: zoomIn 0.3s ease-in-out;
+            color: var(--text-color);
+        }
+        @keyframes zoomIn {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+        .close {
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .arrow-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: var(--text-color);
+        }
+        #sentimentChart {
+            max-height: 300px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="bg-radial-pink d-flex flex-column min-vh-100 position-relative">
+    <div class="blob top-left"></div>
+    <div class="blob top-right"></div>
+    <div class="blob bottom-left"></div>
+    <div class="blob bottom-right"></div>
+    <header class="text-center py-4" style="color: #1e3a8a;">
+        <h1 class="display-5 fw-bold">Email Management</h1>
+    </header>
+    <div class="container my-5 flex-grow-1">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card glowing-card shadow-sm p-4">
+                    <h3 class="mb-3" style="color: #1e3a8a;">Filter Emails</h3>
+                    <form method="POST" class="row g-3">
+                        <div class="col-md-4">
+                            <select name="filter_sentiment" class="form-select" onchange="this.form.submit()">
+                                <option value="all" {% if filter_sentiment == 'all' %}selected{% endif %}>All</option>
+                                <option value="positive" {% if filter_sentiment == 'positive' %}selected{% endif %}>Positive</option>
+                                <option value="negative" {% if filter_sentiment == 'negative' %}selected{% endif %}>Negative</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <select name="filter_status" class="form-select" onchange="this.form.submit()">
+                                <option value="all" {% if filter_status == 'all' %}selected{% endif %}>All</option>
+                                <option value="pending" {% if filter_status == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="replied" {% if filter_status == 'replied' %}selected{% endif %}>Replied</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-8 mb-4">
+                <div class="card glowing-card shadow-sm p-4" style="height: 400px; overflow-y: auto;">
+                    <h3 class="mb-3" style="color: #1e3a8a;">Email List</h3>
+                    <ul class="list-group" id="email-list">
+                        {% for email in emails %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Subject:</strong> {{ email.subject }}<br>
+                                <strong>Emotion:</strong> {{ email.emotion | capitalize }}<br>
+                                <strong>Status:</strong> {{ email.status | capitalize }}
+                            </div>
+                            {% if email.status == "pending" %}
+                            <a href="{{ url_for('email_detail', index=loop.index0) }}" class="arrow-btn">➡️</a>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                        {% if not emails %}
+                        <li class="list-group-item text-center" style="color: #6b21a8;">No emails available.</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card glowing-card shadow-sm p-4" style="height: 400px;">
+                    <h3 class="mb-3" style="color: #1e3a8a;">Sentiment Distribution</h3>
+                    <div style="position: relative; height: 300px;">
+                        <canvas id="sentimentChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer class="bg-theme text-center py-3 mt-auto" style="color: #ff1493;">
+        <p class="mb-0">Built by Shweta | © 2025 Sentiment Watchdog</p>
+    </footer>
+    <div class="form-check form-switch position-absolute top-0 end-0 m-3">
+        <input class="form-check-input theme-toggle" type="checkbox" id="themeToggle">
+        <label class="form-check-label text-white" for="themeToggle">Dark Mode</label>
+    </div>
+    <script src="{{ url_for('static', filename='home.js') }}" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const ctx = document.getElementById('sentimentChart').getContext('2d');
+            const counts = {
+                positive: {{ sentiment_counts['POSITIVE'] | default(0) }},
+                negative: {{ sentiment_counts['NEGATIVE'] | default(0) }},
+                neutral: {{ sentiment_counts['NEUTRAL'] | default(0) }}
+            };
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Positive', 'Negative', 'Neutral'],
+                    datasets: [{
+                        data: [counts.positive, counts.negative, counts.neutral],
+                        backgroundColor: ['#4CAF50', '#F44336', '#9E9E9E']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: 10 }
+                }
+            });
+
+            let currentEmailIndex = -1;
+            const modal = document.getElementById('emailModal');
+            const modalSubject = document.getElementById('modal-subject');
+            const modalBody = document.getElementById('modal-body');
+            const modalEmotion = document.getElementById('modal-emotion');
+            const customReply = document.getElementById('custom-reply');
+            const aiReplyBtn = document.getElementById('ai-reply-btn');
+            const suggestedReply = document.getElementById('suggested-reply');
+            const sendReplyModalBtn = document.getElementById('send-reply-modal-btn');
+            const replyStatusModal = document.getElementById('reply-status-modal');
+
+            function closeModal() {
+                modal.style.display = 'none';
+            }
+
+            aiReplyBtn.addEventListener('click', async () => {
+                const response = await fetch('/fetch_email', { method: 'POST' });
+                const data = await response.json();
+                if (data.status === 'Email fetched' && data.reply) {
+                    suggestedReply.textContent = data.reply.text;
+                    suggestedReply.style.display = 'block';
+                } else {
+                    suggestedReply.textContent = 'No suggestion available.';
+                    suggestedReply.style.display = 'block';
+                }
+            });
+
+            sendReplyModalBtn.addEventListener('click', async () => {
+                const replyText = customReply.value || (suggestedReply.style.display === 'block' ? suggestedReply.textContent : '');
+                if (replyText && currentEmailIndex >= 0) {
+                    const response = await fetch('/send_reply', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            subject: modalSubject.textContent,
+                            reply_text: replyText,
+                            to_email: "shwetaumbrajkaar11@gmail.com",
+                            email_id: currentEmailIndex
+                        })
+                    });
+                    const data = await response.json();
+                    replyStatusModal.textContent = data.status;
+                    if (data.status === 'Replied') {
+                        const emailList = document.getElementById('email-list');
+                        const emailItem = emailList.children[currentEmailIndex];
+                        emailItem.querySelector('div strong:last-child').textContent = 'Status: Replied';
+                        emailItem.querySelector('.arrow-btn')?.remove();
+                    }
+                    setTimeout(() => { replyStatusModal.textContent = ''; }, 3000);
+                    closeModal();
+                } else {
+                    replyStatusModal.textContent = 'No reply to send.';
+                    setTimeout(() => { replyStatusModal.textContent = ''; }, 3000);
+                }
+            });
+
+            window.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    closeModal();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

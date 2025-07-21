@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Sentiment Watchdog</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Georgia:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .flashcard {
+            width: 200px;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: box-shadow 0.3s ease, background-color 0.3s ease;
+            border-radius: 15px;
+            text-align: center;
+            margin: 10px;
+            text-decoration: none;
+            color: #ffffff;
+            font-weight: bold;
+            opacity: 0.9;
+        }
+        .flashcard:hover {
+            box-shadow: 0 0 15px var(--glow-color);
+        }
+        .flashcard#dashboard {
+            background-color: #ff69b4;
+        }
+        .flashcard#upload {
+            background-color: #ff1493;
+        }
+        .flashcard#manage {
+            background-color: #ff4d94;
+        }
+        .flashcard#chat {
+            background-color: #ff80ab;
+        }
+        .flashcard-row {
+            display: flex;
+            justify-content: center;
+        }
+        .emoji-container {
+            position: relative;
+            height: 600px; /* Adjusted height to fit all emojis */
+            overflow: hidden;
+        }
+        .emoji {
+            position: absolute;
+            top: 100px;
+            animation: dropBounce 2s ease-out forwards, floaty 2s ease-in-out infinite alternate;
+            animation-delay: 0s, 2s;
+            opacity: 1;
+            z-index: 5;
+        }
+        .emoji:nth-child(1) { left: 10%; width: 150px; }
+        .emoji:nth-child(2) { left: 35%; width: 120px; }
+        .emoji:nth-child(3) { left: 60%; width: 120px; }
+        .emoji:nth-child(4) { left: 80%; width: 120px; }
+        .emoji:nth-child(5) { left: 25%; top: 300px; width: 120px; } /* Centered below */
+        .emoji:nth-child(6) { left: 55%; top: 300px; width: 120px; } /* Centered below */
+        .emoji.delay-1 { animation-delay: 0.3s, 2.3s; }
+        .emoji.delay-2 { animation-delay: 0.6s, 2.6s; }
+        .emoji.delay-3 { animation-delay: 0.9s, 2.9s; }
+        @keyframes dropBounce {
+            0% { transform: translateY(-300px); opacity: 0; }
+            60% { transform: translateY(0px); opacity: 1; }
+            80% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        @keyframes floaty {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-10px); }
+        }
+    </style>
+    <script src="{{ url_for('static', filename='home.js') }}" defer></script>
+</head>
+<body class="bg-radial-pink d-flex flex-column min-vh-100 position-relative">
+    <div class="blob top-left"></div>
+    <div class="blob top-right"></div>
+    <div class="blob bottom-left"></div>
+    <div class="blob bottom-right"></div>
+    <div class="container my-5 flex-grow-1 d-flex">
+        <div class="text-section col-md-6 d-flex flex-column justify-content-center">
+            <h1 class="display-4" style="font-family: Georgia, serif; color: #1e3a8a;">Customer Sentiment Watchdog</h1>
+            <p class="mt-3" style="color: #6b21a8;">Understand What Your Customers Feel.</p>
+            <div class="flashcard-row">
+                <a href="{{ url_for('dashboard') }}" class="flashcard" id="dashboard">View Dashboard</a>
+                <a href="{{ url_for('upload') }}" class="flashcard" id="upload">Upload CSV Report</a>
+            </div>
+            <div class="flashcard-row">
+                <a href="{{ url_for('email_management') }}" class="flashcard" id="manage">Manage Emails</a>
+                <a href="{{ url_for('chatbot') }}" class="flashcard" id="chat">Chat with Us</a>
+            </div>
+        </div>
+        <div class="emoji-container col-md-6 position-relative">
+            <img src="{{ url_for('static', filename='assets/smile_emo.png') }}" class="emoji bounce" style="width: 150px; left: 10%;" alt="Happy Emoji"/>
+            <img src="{{ url_for('static', filename='assets/angry_emo.png') }}" class="emoji bounce delay-1" style="width: 120px; left: 35%;" alt="Angry Emoji"/>
+            <img src="{{ url_for('static', filename='assets/surprised_emo.png') }}" class="emoji bounce delay-2" style="width: 120px; left: 60%;" alt="Surprised Emoji"/>
+            <img src="{{ url_for('static', filename='assets/thinking_emo.png') }}" class="emoji bounce delay-3" style="width: 120px; left: 80%;" alt="Neutral Emoji"/>
+            <img src="{{ url_for('static', filename='assets/tongue.png') }}" class="emoji bounce delay-3" style="width: 120px; left: 25%; top: 300px;" alt="Face with tongue Emoji"/>
+            <img src="{{ url_for('static', filename='assets/inverted.png') }}" class="emoji bounce delay-3" style="width: 120px; left: 55%; top: 300px;" alt="Inverted Emoji"/>
+        </div>
+    </div>
+    <footer class="bg-theme text-white text-center py-3 mt-auto">
+        <p class="mb-0">Built by Shweta | © 2025 Sentiment Watchdog</p>
+    </footer>
+    <div class="form-check form-switch position-absolute top-0 end-0 m-3">
+        <input class="form-check-input theme-toggle" type="checkbox" id="themeToggle">
+        <label class="form-check-label text-white" for="themeToggle">Dark Mode</label>
+    </div>
+</body>
+</html>
