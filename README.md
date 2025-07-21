@@ -1,6 +1,5 @@
-Below is a sample README.md file tailored for your Sentiment Watchdog project, summarizing its purpose, features, setup instructions, and the recent updates (e.g., email fetching, AI suggestion button). It’s written in Markdown and designed to be clear and professional for GitHub. Since it’s 12:11 AM IST on July 22, 2025, I’ll keep it concise yet comprehensive.
-
 Sentiment Watchdog
+
 Welcome to Sentiment Watchdog, a powerful tool for analyzing customer emotions from text, speech, or chat data. This project leverages AI to provide real-time insights and actionable suggestions, helping businesses enhance customer experience.
 
 Overview
